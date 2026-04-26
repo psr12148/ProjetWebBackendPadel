@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!-- ============================================================
+         changeSet id="1" : Table SITES
+         Chaque changeSet est atomique (1 transaction).
+         Le checksum est calculé par Liquibase — ne pas modifier
+         un changeSet déjà exécuté.
+    ============================================================ -->
+    <changeSet id="1" author="padel-dev">
+        <createTable tableName="sites">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nom" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="adresse" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nb_terrains" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heure_ouverture" type="TIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heure_fermeture" type="TIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="annee_applicable" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <sql>
+            ALTER TABLE sites ADD CONSTRAINT chk_nb_terrains CHECK (nb_terrains >= 1);
+            ALTER TABLE sites ADD CONSTRAINT chk_annee CHECK (annee_applicable >= 2024);
+            ALTER TABLE sites ADD CONSTRAINT chk_horaires CHECK (heure_ouverture &lt; heure_fermeture);
+        </sql>
+
+        <rollback>
+            <dropTable tableName="sites"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ============================================================
+         changeSet id="2" : Table TERRAINS
+    ============================================================ -->
+    <changeSet id="2" author="padel-dev">
+        <createTable tableName="terrains">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="site_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_terrain_site"
+                             references="sites(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="numero" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nom" type="VARCHAR(50)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addUniqueConstraint tableName="terrains"
+                             columnNames="site_id, numero"
+                             constraintName="uq_terrain_site"/>
+
+        <rollback>
+            <dropTable tableName="terrains"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ============================================================
+         changeSet id="3" : Table JOURS_FERMETURE
+         site_id nullable = fermeture globale (tous les sites)
+    ============================================================ -->
+    <changeSet id="3" author="padel-dev">
+        <createTable tableName="jours_fermeture">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="site_id" type="BIGINT">
+                <!-- nullable : NULL = fermeture globale -->
+                <constraints foreignKeyName="fk_fermeture_site"
+                             references="sites(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addUniqueConstraint tableName="jours_fermeture"
+                             columnNames="site_id, date"
+                             constraintName="uq_fermeture_site_date"/>
+
+        <createIndex tableName="jours_fermeture" indexName="idx_fermeture_date">
+            <column name="date"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="jours_fermeture"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ============================================================
+         changeSet id="4" : Table MEMBRES
+    ============================================================ -->
+    <changeSet id="4" author="padel-dev">
+        <createTable tableName="membres">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="matricule" type="VARCHAR(20)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="type_membre" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="site_id" type="BIGINT">
+                <!-- nullable : NULL pour GLOBAL et LIBRE -->
+                <constraints foreignKeyName="fk_membre_site"
+                             references="sites(id)"/>
+            </column>
+            <column name="nom" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="prenom" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="mot_de_passe_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="solde_impaye" type="DECIMAL(10,2)" defaultValueNumeric="0.00">
+                <constraints nullable="false"/>
+            </column>
+            <column name="penalite_jusqua" type="DATE"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <sql>
+            ALTER TABLE membres ADD CONSTRAINT chk_type_membre
+                CHECK (type_membre IN ('GLOBAL','SITE','LIBRE'));
+            ALTER TABLE membres ADD CONSTRAINT chk_solde_positif
+                CHECK (solde_impaye >= 0);
+            ALTER TABLE membres ADD CONSTRAINT chk_membre_site_coherent CHECK (
+                (type_membre = 'SITE' AND site_id IS NOT NULL) OR
+                (type_membre IN ('GLOBAL', 'LIBRE'))
+                );
+        </sql>
+
+        <createIndex tableName="membres" indexName="idx_membres_matricule">
+            <column name="matricule"/>
+        </createIndex>
+        <createIndex tableName="membres" indexName="idx_membres_type">
+            <column name="type_membre"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="membres"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ============================================================
+         changeSet id="5" : Table CRENEAUX_HORAIRES
+    ============================================================ -->
+    <changeSet id="5" author="padel-dev">
+        <createTable tableName="creneaux_horaires">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="site_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_creneau_site"
+                             references="sites(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="heure_debut" type="TIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_match_min" type="INT" defaultValueNumeric="90">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pause_entre_matchs_min" type="INT" defaultValueNumeric="15">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addUniqueConstraint tableName="creneaux_horaires"
+                             columnNames="site_id, heure_debut"
+                             constraintName="uq_creneau_site_heure"/>
+
+        <rollback>
+            <dropTable tableName="creneaux_horaires"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ============================================================
+         changeSet id="6" : Table MATCHS
+    ============================================================ -->
+    <changeSet id="6" author="padel-dev">
+        <createTable tableName="matchs">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="terrain_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_match_terrain"
+                             references="terrains(id)"/>
+            </column>
+            <column name="organisateur_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_match_organisateur"
+                             references="membres(id)"/>
+            </column>
+            <column name="date_heure" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_match" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(15)" defaultValue="EN_ATTENTE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_total" type="DECIMAL(10,2)" defaultValueNumeric="60.00">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <sql>
+            ALTER TABLE matchs ADD CONSTRAINT chk_type_match
+                CHECK (type_match IN ('PRIVE','PUBLIC'));
+            ALTER TABLE matchs ADD CONSTRAINT chk_statut_match
+                CHECK (statut IN ('EN_ATTENTE','CONFIRME','ANNULE'));
+        </sql>
+
+        <addUniqueConstraint tableName="matchs"
+                             columnNames="terrain_id, date_heure"
+                             constraintName="uq_terrain_creneau"/>
+
+        <createIndex tableName="matchs" indexName="idx_matchs_terrain_date">
+            <column name="terrain_id"/>
+            <column name="date_heure"/>
+        </createIndex>
+        <createIndex tableName="matchs" indexName="idx_matchs_statut">
+            <column name="statut"/>
+        </createIndex>
+        <createIndex tableName="matchs" indexName="idx_matchs_date_heure">
+            <column name="date_heure"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="matchs"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ============================================================
+         changeSet id="7" : Table PARTICIPATIONS
+    ============================================================ -->
+    <changeSet id="7" author="padel-dev">
+        <createTable tableName="participations">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="match_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_participation_match"
+                             references="matchs(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="membre_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_participation_membre"
+                             references="membres(id)"/>
+            </column>
+            <column name="statut" type="VARCHAR(15)" defaultValue="EN_ATTENTE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_du" type="DECIMAL(10,2)" defaultValueNumeric="15.00">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_paye" type="DECIMAL(10,2)" defaultValueNumeric="0.00">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_paiement" type="TIMESTAMP"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="created_by" type="VARCHAR(50)"/>
+            <column name="updated_by" type="VARCHAR(50)"/>
+        </createTable>
+
+        <sql>
+            ALTER TABLE participations ADD CONSTRAINT chk_statut_participation
+                CHECK (statut IN ('EN_ATTENTE','CONFIRME','LIBERE'));
+        </sql>
+
+        <addUniqueConstraint tableName="participations"
+                             columnNames="match_id, membre_id"
+                             constraintName="uq_participation"/>
+
+        <createIndex tableName="participations" indexName="idx_participations_match">
+            <column name="match_id"/>
+        </createIndex>
+        <createIndex tableName="participations" indexName="idx_participations_membre">
+            <column name="membre_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="participations"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
