@@ -2,6 +2,7 @@ package be.ephec.pdw.projetwebbackendpadel.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "membre")
@@ -9,7 +10,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Membre extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -3,6 +3,7 @@ package be.ephec.pdw.projetwebbackendpadel.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -14,7 +15,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Site extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
