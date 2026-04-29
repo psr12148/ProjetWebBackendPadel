@@ -72,4 +72,17 @@ public interface TerrainRepository extends JpaRepository<Terrain,Long> {
      */
     @Query("SELECT COUNT(t) FROM Terrain t WHERE t.site.id = :siteId")
     long countBySiteId(@Param("siteId") Long siteId);
+
+    /**
+     * Compte les terrains d'un site, en excluant le terrain en cours de modification.
+     */
+    @Query("""
+        SELECT COUNT(t) FROM Terrain t 
+        WHERE t.site.id = :siteId 
+          AND t.id <> :excludeId
+    """)
+    long countBySiteIdAndIdNot(
+            @Param("siteId") Long siteId,
+            @Param("excludeId") Long excludeId
+    );
 }

@@ -37,8 +37,7 @@ public class TerrainService {
                 .toList();
     }
 
-    public TerrainResponse findById(Long id) {
-        return terrainMapper.toResponse(getTerrainOrThrow(id));
+    public TerrainResponse findById(Long id) {return terrainMapper.toResponse(getTerrainOrThrow(id));
     }
 
     public List<TerrainResponse> findDisponibles(Long siteId, LocalDateTime dateHeure) {
@@ -71,6 +70,8 @@ public class TerrainService {
     public TerrainResponse update(Long id, TerrainRequest request) {
         Terrain terrain = getTerrainOrThrow(id);
         Site site = siteService.getSiteOrThrow(request.getSiteId());
+
+        validerCapaciteSite(site, id);
 
         validerNumeroUnique(request.getSiteId(), request.getNumero(), id);
 
@@ -107,9 +108,19 @@ public class TerrainService {
     }
 
     private void validerCapaciteSite(Site site, Long excludeId) {
-        long count = terrainRepository.countBySiteId(site.getId());
-        // Si c'est une création (excludeId null), on vérifie qu'on ne dépasse pas nbTerrains
-        if (excludeId == null || count >= site.getNbTerrains()) {
+
+        long countAutresTerrains;
+
+        if (excludeId == null) {
+            // Mode Création : on compte TOUS les terrains de ce site
+            countAutresTerrains = terrainRepository.countBySiteId(site.getId());
+        } else {
+            // Mode Mise à jour : on compte tous les terrains du site SAUF celui qu'on est en train de modifier
+            countAutresTerrains = terrainRepository.countBySiteIdAndIdNot(site.getId(), excludeId);
+        }
+
+        // Si le nombre d'AUTRES terrains prend déjà toute la place, on bloque
+        if (countAutresTerrains >= site.getNbTerrains()) {
             throw new BusinessException(String.format(
                     "Le site \"%s\" a déjà atteint sa capacité maximale de %d terrain(s).",
                     site.getNom(), site.getNbTerrains()
