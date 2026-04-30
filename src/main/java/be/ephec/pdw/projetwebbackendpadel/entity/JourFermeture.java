@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "jour_fermeture")
@@ -22,5 +22,5 @@ public class JourFermeture extends BaseEntity {
     @JoinColumn(name = "site_id")
     private Site site;
 
-    private Date date;
+    private LocalDate date;
 }

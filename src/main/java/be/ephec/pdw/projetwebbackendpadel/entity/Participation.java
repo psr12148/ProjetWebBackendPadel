@@ -1,18 +1,19 @@
 package be.ephec.pdw.projetwebbackendpadel.entity;
 
+import be.ephec.pdw.projetwebbackendpadel.enums.StatutParticipation;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(
         name = "participations",
         uniqueConstraints = @UniqueConstraint(
-                name = "uq_participation_match_membre",
+                name = "up_participation",
                 columnNames = { "match_id", "membre_id" }
         )
 )
@@ -22,6 +23,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class Participation extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,5 +37,38 @@ public class Participation extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "membre_id", nullable = false)
     private Membre membre;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 15)
+    private StatutParticipation statut = StatutParticipation.EN_ATTENTE;
+
+    @Builder.Default
+    @Column(name = "montant_du", nullable = false, precision = 10, scale = 2)
+    private BigDecimal montantDu = new BigDecimal("15.00");
+
+    @Builder.Default
+    @Column(name = "Montant_paye", nullable = false, precision = 10, scale = 2)
+    private BigDecimal montantPaye = BigDecimal.ZERO;
+
+    @Column(name = "date_paiement")
+    private LocalDate datePaiement;
+
+
+    // --- Méthodes métier ---
+
+    public boolean estPayee() {
+        return montantPaye.compareTo(montantDu) >= 0;
+    }
+
+    public void confirmer() {
+        this.statut = StatutParticipation.CONFIRME;
+        this.datePaiement = LocalDate.now();
+    }
+
+    public void liberer() {
+        this.statut = StatutParticipation.LIBERE;
+    }
+
 
 }

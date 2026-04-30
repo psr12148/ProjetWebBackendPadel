@@ -73,7 +73,7 @@ public class Membre extends BaseEntity {
 
     @Builder.Default
     @OneToMany(mappedBy = "organisateur", fetch = FetchType.LAZY)
-    private List<Match> matchesOrganises = new ArrayList<>();
+    private List<Match> matchsOrganises = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "membre", fetch = FetchType.LAZY)
