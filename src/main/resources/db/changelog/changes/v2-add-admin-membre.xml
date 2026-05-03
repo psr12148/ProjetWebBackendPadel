@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!--
+        Compte administrateur initial.
+        Mot de passe : "admin123456"
+        Hash BCrypt : new BCryptPasswordEncoder().encode("admin123456")
+        !! CHANGER EN PRODUCTION !!
+    -->
+    <changeSet id="8" author="padel-dev">
+        <insert tableName="membres">
+            <column name="matricule"         value="ADMIN"/>
+            <column name="type_membre"       value="GLOBAL"/>
+            <column name="nom"               value="Administrateur"/>
+            <column name="prenom"            value="Padel"/>
+            <column name="email"             value="admin@padel.be"/>
+            <column name="mot_de_passe_hash"
+                    value="$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"/>
+            <column name="solde_impaye"      valueNumeric="0.00"/>
+            <column name="created_at"        valueComputed="NOW()"/>
+        </insert>
+        <rollback>
+            <delete tableName="membres">
+                <where>matricule = 'ADMIN'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

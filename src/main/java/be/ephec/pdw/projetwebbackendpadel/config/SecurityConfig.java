@@ -47,28 +47,28 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         // Public — login uniquement
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/v1/auth/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
 
                         // Dashboard — ADMIN uniquement
-                        .requestMatchers("/api/v1/dashboard/**").hasRole("ADMIN")
+                        .requestMatchers("/v1/dashboard/**").hasRole("ADMIN")
 
                         // Lecture publique (membres connectés), écriture ADMIN
-                        .requestMatchers(HttpMethod.GET,    "/api/v1/sites/**").authenticated()
-                        .requestMatchers(HttpMethod.GET,    "/api/v1/terrains/**").authenticated()
-                        .requestMatchers(HttpMethod.GET,    "/api/v1/membres/**").authenticated()
-                        .requestMatchers(HttpMethod.POST,   "/api/v1/sites/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,    "/api/v1/sites/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sites/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST,   "/api/v1/terrains/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,    "/api/v1/terrains/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/terrains/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST,   "/api/v1/membres/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,    "/api/v1/membres/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/membres/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/v1/sites/**").authenticated()
+                        .requestMatchers(HttpMethod.GET,    "/v1/terrains/**").authenticated()
+                        .requestMatchers(HttpMethod.GET,    "/v1/membres/**").authenticated()
+                        .requestMatchers(HttpMethod.POST,   "/v1/sites/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/v1/sites/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/v1/sites/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/v1/terrains/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/v1/terrains/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/v1/terrains/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/v1/membres/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/v1/membres/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/v1/membres/**").hasRole("ADMIN")
 
                         // Matchs — tous les membres authentifiés
-                        .requestMatchers("/api/v1/matchs/**").authenticated()
+                        .requestMatchers("/v1/matchs/**").authenticated()
 
                         .anyRequest().authenticated()
                 )

@@ -13,6 +13,6 @@
     -->
 
     <include file="db/changelog/changes/v1-init-schema.xml"/>
-
+    <include file="db/changelog/changes/v2-add-admin-membre.xml"/>
 
 </databaseChangeLog>
