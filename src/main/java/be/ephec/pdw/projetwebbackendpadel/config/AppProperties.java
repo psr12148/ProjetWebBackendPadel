@@ -17,6 +17,7 @@ public class AppProperties {
     private Reservation reservation = new Reservation();
     private Scheduler scheduler = new Scheduler();
     private Cors cors = new Cors();
+    private Security security = new Security();
 
     @Getter
     @Setter
@@ -59,6 +60,21 @@ public class AppProperties {
 
         @NotBlank
         private String allowedOrigins = "http://localhost:4200";
+    }
+
+    @Getter
+    @Setter
+    public static class Security {
+        /**
+         * Clé secrète HMAC-SHA512 — minimum 64 caractères.
+         * À surcharger via variable d'environnement PADEL_SECURITY_JWT-SECRET en prod.
+         */
+        @NotBlank
+        private String jwtSecret = "ephec-pdw-super-secret-jwt-signing-key-must-be-at-least-256-bits!!";
+
+        /** Durée de validité du token en millisecondes */
+        @Positive
+        private long jwtExpirationMs = 900000L;
     }
 
 }
