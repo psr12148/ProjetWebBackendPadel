@@ -64,7 +64,13 @@ public class Site extends BaseEntity {
 
     // --- Méthodes métier ---
     public boolean estCreneauValide(LocalTime heureDebut, LocalTime heureFin) {
-        return !heureDebut.isBefore(heureOuverture) && !heureFin.isAfter(heureFermeture);
+        // Le match doit démarrer dans les horaires d'ouverture
+        if (heureDebut.isBefore(heureOuverture)) return false;
+        // Le match ne doit pas dépasser la fermeture
+        // Si heureFin < heureDebut, c'est qu'on a débordé après minuit → invalide
+        if (heureFin.isBefore(heureDebut)) return false;
+        if (heureFin.isAfter(heureFermeture)) return false;
+        return true;
     }
 
     public int nombreCreneauxParJour() {

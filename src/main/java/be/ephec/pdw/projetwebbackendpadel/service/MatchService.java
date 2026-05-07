@@ -5,6 +5,7 @@ import be.ephec.pdw.projetwebbackendpadel.dto.matchDto.MatchRequest;
 import be.ephec.pdw.projetwebbackendpadel.dto.matchDto.MatchResponse;
 import be.ephec.pdw.projetwebbackendpadel.dto.participationDto.ParticipationResponse;
 import be.ephec.pdw.projetwebbackendpadel.entity.*;
+import be.ephec.pdw.projetwebbackendpadel.enums.StatutParticipation;
 import be.ephec.pdw.projetwebbackendpadel.enums.TypeMatch;
 import be.ephec.pdw.projetwebbackendpadel.enums.StatutMatch;
 import be.ephec.pdw.projetwebbackendpadel.exception.BusinessException;

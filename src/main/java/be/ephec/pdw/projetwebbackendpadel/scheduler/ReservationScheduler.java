@@ -30,6 +30,8 @@ public class ReservationScheduler {
     private final MembreRepository      membreRepository;
     private final AppProperties         appProperties;
 
+    // --- Point d'entrée - déclenché par le cron ---
+
     @Scheduled(cron = "${padel.scheduler.cron-j1}")
     @Transactional
     public void traiterMatchsDuLendemain() {
@@ -58,13 +60,39 @@ public class ReservationScheduler {
         log.info("Traitement match id={}, type={}, statut={}",
                 match.getId(), match.getTypeMatch(), match.getStatut());
 
+        /*
+         * ÉTAPE 2 d'abord pour les matchs PRIVÉS :
+         *
+         * On doit évaluer si le match privé est complet AVANT
+         * de libérer les places non payées (étape 1).
+         *
+         * Règle métier : si un match privé a 4 joueurs inscrits
+         * (même non payés), il ne bascule pas en public.
+         * Ce sont les matchs où il manque des joueurs (< 4 inscrits)
+         * qui basculent. Les joueurs non payés seront libérés
+         * APRÈS la bascule éventuelle.
+         *
+         * Ordre correct : étape 2 → étape 1 → étape 3 → étape 4
+         */
+        if (match.getTypeMatch() == TypeMatch.PRIVE) {
+            etape2_basculerPriveEnPublicSiIncomplet(match);
+            // Rechargement pour que l'étape 1 voie le bon typeMatch
+            match = rechargerMatch(match.getId());
+        }
+
         // ÉTAPE 1 : Libérer les places non payées
         etape1_libererPlacesNonPayees(match);
 
-        // ÉTAPE 2 : Bascule privé → public si incomplet
-        if (match.getTypeMatch() == TypeMatch.PRIVE) {
-            etape2_basculerPriveEnPublicSiIncomplet(match);
-        }
+        /*
+         * IMPORTANT : après l'étape 1, les participations ont été modifiées
+         * en base (statut → LIBERE). Pour que les étapes suivantes voient
+         * l'état à jour, on recharge le match depuis la base.
+         * Sans ce rechargement, le cache JPA de premier niveau retourne
+         * encore les anciennes valeurs et les étapes 2, 3, 4 calculent
+         * des résultats incorrects.
+         */
+        match = rechargerMatch(match.getId());
+
 
         // ÉTAPE 3 : Solde organisateur si match public incomplet
         if (match.getTypeMatch() == TypeMatch.PUBLIC) {
@@ -83,17 +111,9 @@ public class ReservationScheduler {
                 participationRepository.findNonPayeesForMatch(match.getId());
 
         for (Participation p : nonPayees) {
-            // Ne pas libérer l'organisateur d'un match privé ici
-            // (géré dans l'étape 2 avec pénalité)
-            if (match.getTypeMatch() == TypeMatch.PRIVE
-                    && p.getMembre().getId().equals(match.getOrganisateur().getId())) {
-                continue;
-            }
-
             p.liberer();
             participationRepository.save(p);
-
-            log.info("Place libérée : match id={}, membre id={} (non payé)",
+            log.info("[Étape 1] Place libérée — match id={}, membre id={} (non payé)",
                     match.getId(), p.getMembre().getId());
         }
     }
@@ -103,13 +123,21 @@ public class ReservationScheduler {
     // --- Bascule privé -> public + pénalité organisateur ---
 
     private void etape2_basculerPriveEnPublicSiIncomplet(Match match) {
-        long joueursActifs = match.getParticipations().stream()
-                .filter(p -> p.getStatut() != StatutParticipation.LIBERE)
-                .count();
+        /*
+         * On compte les joueurs ACTIFS (non libérés) depuis la base.
+         * À ce stade (avant l'étape 1), les places non payées
+         * sont encore EN_ATTENTE — donc "actives".
+         *
+         * Si le nombre total d'inscrits actifs < 4 → bascule.
+         * Si 4 joueurs sont inscrits (même non payés) → pas de bascule,
+         * leurs places seront libérées à l'étape 1 si non payées.
+         */
+        long joueursInscrits = participationRepository
+                .findActivesForMatch(match.getId()).size();
 
-        if (joueursActifs >= 4) {
-            log.info("Match privé id={} : complet ({} joueurs), pas de bascule",
-                    match.getId(), joueursActifs);
+        if (joueursInscrits >= 4) {
+            log.info("[Étape 2] Match privé id={} : {} joueur(s) inscrit(s), pas de bascule",
+                    match.getId(), joueursInscrits);
             return;
         }
 
@@ -118,7 +146,7 @@ public class ReservationScheduler {
         matchRepository.save(match);
 
         log.warn("Match id={} basculé de PRIVE à PUBLIC ({} joueur(s) actif(s))",
-                match.getId(), joueursActifs);
+                match.getId(), joueursInscrits);
 
         // Pénalité à l'organisateur
         Membre organisateur = match.getOrganisateur();
@@ -136,11 +164,21 @@ public class ReservationScheduler {
     // --- Solde organisateur (match public incomplet) ---
 
     private void etape3_calculerSoldeOrganisateur(Match match) {
-        long joueursConfirmes = match.getParticipations().stream()
+        /*
+         * On compte les joueurs confirmés depuis la BASE pour avoir
+         * le compte exact après les paiements et après l'étape 1.
+         */
+        long joueursConfirmes = participationRepository
+                .findActivesForMatch(match.getId())
+                .stream()
                 .filter(p -> p.getStatut() == StatutParticipation.CONFIRME)
                 .count();
 
-        if (joueursConfirmes >= 4) return;
+        if (joueursConfirmes >= 4) {
+            log.info("Match public id={} complet ({} joueurs), pas de solde",
+                    match.getId(), joueursConfirmes);
+            return;
+        }
 
         long placesVides = 4 - joueursConfirmes;
         BigDecimal montantParJoueur = BigDecimal.valueOf(
@@ -162,7 +200,12 @@ public class ReservationScheduler {
     // --- Confirmation du match si complet ---
 
     private void etape4_confirmerMatchComplet(Match match) {
-        long joueursConfirmes = match.getParticipations().stream()
+        /*
+         * On recompte depuis la BASE pour avoir l'état final exact.
+         */
+        long joueursConfirmes = participationRepository
+                .findActivesForMatch(match.getId())
+                .stream()
                 .filter(p -> p.getStatut() == StatutParticipation.CONFIRME)
                 .count();
 
@@ -174,6 +217,19 @@ public class ReservationScheduler {
             log.info("Match id={} reste EN_ATTENTE ({} joueur(s) confirmé(s))",
                     match.getId(), joueursConfirmes);
         }
+    }
+
+
+    // --- Helper - rechargement depuis la base ---
+    /**
+     * Recharge le match depuis la base de données avec ses participations.
+     * Nécessaire après chaque étape qui modifie les participations,
+     * pour contourner le cache JPA de premier niveau.
+     */
+    private Match rechargerMatch(Long matchId) {
+        return matchRepository.findByIdWithParticipations(matchId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Match introuvable après rechargement : id=" + matchId));
     }
 
 

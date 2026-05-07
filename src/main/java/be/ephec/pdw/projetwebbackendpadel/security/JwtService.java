@@ -1,9 +1,8 @@
 package be.ephec.pdw.projetwebbackendpadel.security;
 
-import be.ephec.pdw.projetwebbackendpadel.config.AppProperties;
+import be.ephec.pdw.projetwebbackendpadel.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +19,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JwtService {
 
-    private final AppProperties appProperties;
+    private final JwtProperties jwtProperties;
 
     // --- Génération ---
 
@@ -34,16 +33,23 @@ public class JwtService {
         claims.put("matricule", userDetails.getMatricule());
         claims.put("admin",     userDetails.isAdmin());
 
+        return buildToken(claims, userDetails.getUsername(),
+                jwtProperties.getExpiration());
+    }
+
+    public String generateRefreshToken(CustomUserDetails userDetails) {
+        return buildToken(new HashMap<>(), userDetails.getUsername(),
+                jwtProperties.getRefreshExpiration());
+    }
+
+    private String buildToken(Map<String, Object> claims, String subject, long expiration) {
         return Jwts.builder()
                 .claims(claims)
-                .subject(userDetails.getUsername())
+                .subject(subject)
                 .issuedAt(new Date())
-                .expiration(new Date(
-                        System.currentTimeMillis()
-                        + appProperties.getSecurity().getJwtExpirationMs()))
-                .signWith(getSigningKey(),Jwts.SIG.HS512)
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSigningKey(), Jwts.SIG.HS512)
                 .compact();
-
     }
 
 
@@ -98,17 +104,9 @@ public class JwtService {
     // --- Clé de signature ---
 
     private SecretKey getSigningKey() {
-        // La clé est encodée en Base64 dans la config
-        // Si elle n'est pas encodée, on l'encode à la volée
-        try {
-            byte[] keyBytes = Decoders.BASE64.decode(
-                    appProperties.getSecurity().getJwtSecret());
-            return Keys.hmacShaKeyFor(keyBytes);
-        } catch (Exception e) {
-            // Fallback : utilise la clé brute comme bytes UTF-8
-            return Keys.hmacShaKeyFor(
-                    appProperties.getSecurity().getJwtSecret().getBytes());
-        }
+        // Utilise les bytes UTF-8 de la clé directement
+        return Keys.hmacShaKeyFor(
+                jwtProperties.getSecret().getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
 }

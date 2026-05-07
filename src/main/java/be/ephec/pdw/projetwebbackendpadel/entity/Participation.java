@@ -7,13 +7,14 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(
         name = "participations",
         uniqueConstraints = @UniqueConstraint(
-                name = "up_participation",
+                name = "uq_participation",
+                // pour correspondre au changelog Liquibase
                 columnNames = { "match_id", "membre_id" }
         )
 )
@@ -48,11 +49,11 @@ public class Participation extends BaseEntity {
     private BigDecimal montantDu = new BigDecimal("15.00");
 
     @Builder.Default
-    @Column(name = "Montant_paye", nullable = false, precision = 10, scale = 2)
+    @Column(name = "montant_paye", nullable = false, precision = 10, scale = 2)
     private BigDecimal montantPaye = BigDecimal.ZERO;
 
     @Column(name = "date_paiement")
-    private LocalDate datePaiement;
+    private LocalDateTime datePaiement;
 
 
     // --- Méthodes métier ---
@@ -62,8 +63,8 @@ public class Participation extends BaseEntity {
     }
 
     public void confirmer() {
-        this.statut = StatutParticipation.CONFIRME;
-        this.datePaiement = LocalDate.now();
+        this.statut       = StatutParticipation.CONFIRME;
+        this.datePaiement = LocalDateTime.now();  // ← cohérent avec LocalDateTime
     }
 
     public void liberer() {

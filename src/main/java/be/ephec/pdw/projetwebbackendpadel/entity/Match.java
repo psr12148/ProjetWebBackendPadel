@@ -51,6 +51,7 @@ public class Match extends BaseEntity {
     @Column(name = "type_match", nullable = false, length = 10)
     private TypeMatch typeMatch;
 
+    @Builder.Default
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)

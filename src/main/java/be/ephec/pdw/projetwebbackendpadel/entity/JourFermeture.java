@@ -7,7 +7,7 @@ import lombok.experimental.SuperBuilder;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "jour_fermeture")
+@Table(name = "jours_fermeture")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,9 +18,13 @@ public class JourFermeture extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "site_id")
     private Site site;
 
+    @Column(nullable = false)
     private LocalDate date;
+
+    @Column(length = 255)
+    private String motif;
 }

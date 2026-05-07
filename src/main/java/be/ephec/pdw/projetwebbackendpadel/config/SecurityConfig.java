@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,8 +32,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
-    private final JwtAuthenticationFilter jwtAuthFilter;
-    private final AppProperties appProperties;
+    private final JwtAuthenticationFilter  jwtAuthFilter;
+    private final AppProperties            appProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,57 +41,81 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // Stateless — pas de session HTTP
+                // Nécessaire pour que la console H2 s'affiche (iframe)
+                .headers(headers -> headers
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public — login uniquement
-                        .requestMatchers("/v1/auth/**").permitAll()
+                        // ===== Endpoints publics =====
+
+                        // Console H2 — dev uniquement
+                        .requestMatchers("/h2-console/**").permitAll()
+
+                        // Swagger / OpenAPI
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/api-docs/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
+                        // Actuator health
                         .requestMatchers("/actuator/health").permitAll()
 
-                        // Dashboard — ADMIN uniquement
+                        // Auth — login sans token
+                        // ATTENTION : context-path = /api, donc les controllers mappent /v1/...
+                        // Spring Security intercepte AVANT le context-path → pas de /api/ ici
+                        .requestMatchers("/v1/auth/**").permitAll()
+
+                        // ===== Dashboard — ADMIN uniquement =====
                         .requestMatchers("/v1/dashboard/**").hasRole("ADMIN")
 
-                        // Lecture publique (membres connectés), écriture ADMIN
+                        // ===== Sites — lecture authentifiée, écriture ADMIN =====
                         .requestMatchers(HttpMethod.GET,    "/v1/sites/**").authenticated()
-                        .requestMatchers(HttpMethod.GET,    "/v1/terrains/**").authenticated()
-                        .requestMatchers(HttpMethod.GET,    "/v1/membres/**").authenticated()
                         .requestMatchers(HttpMethod.POST,   "/v1/sites/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,    "/v1/sites/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/v1/sites/**").hasRole("ADMIN")
+
+                        // ===== Terrains =====
+                        .requestMatchers(HttpMethod.GET,    "/v1/terrains/**").authenticated()
                         .requestMatchers(HttpMethod.POST,   "/v1/terrains/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,    "/v1/terrains/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/v1/terrains/**").hasRole("ADMIN")
+
+                        // ===== Membres =====
+                        .requestMatchers(HttpMethod.GET,    "/v1/membres/**").authenticated()
                         .requestMatchers(HttpMethod.POST,   "/v1/membres/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,    "/v1/membres/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/v1/membres/**").hasRole("ADMIN")
 
-                        // Matchs — tous les membres authentifiés
+                        // ===== Matchs — tous les membres connectés =====
                         .requestMatchers("/v1/matchs/**").authenticated()
 
                         .anyRequest().authenticated()
                 )
 
-                // Gestion des erreurs 401 / 403
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) -> {
                             res.setStatus(401);
                             res.setContentType("application/json;charset=UTF-8");
-                            res.getWriter().write("{\"status\":401,\"message\":\"Non authentifié\"}");
+                            res.getWriter().write(
+                                    "{\"status\":401,\"message\":\"Non authentifié\"}");
                         })
                         .accessDeniedHandler((req, res, e) -> {
                             res.setStatus(403);
                             res.setContentType("application/json;charset=UTF-8");
-                            res.getWriter().write("{\"status\":403,\"message\":\"Accès refusé\"}");
+                            res.getWriter().write(
+                                    "{\"status\":403,\"message\":\"Accès refusé\"}");
                         })
                 )
 
                 .authenticationProvider(authenticationProvider())
-
-                // Insère le filtre JWT avant le filtre d'authentification standard
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -102,9 +127,8 @@ public class SecurityConfig {
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        // 1. On passe le service directement dans le constructeur
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        // 2. On configure l'encodeur de mot de passe (qui reste un setter classique)
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
@@ -123,7 +147,7 @@ public class SecurityConfig {
         config.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(false);   // stateless — pas de cookies
+        config.setAllowCredentials(false);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
