@@ -1,6 +1,7 @@
 package be.ephec.pdw.projetwebbackendpadel.repository;
 
 import be.ephec.pdw.projetwebbackendpadel.entity.Match;
+import be.ephec.pdw.projetwebbackendpadel.enums.StatutMatch;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -34,7 +35,7 @@ public interface DashboardRepository extends JpaRepository<Match, Long> {
           AND m.dateHeure <  :fin
     """)
     long countMatchsByStatutBetween(
-            @Param("statut") String statut,
+            @Param("statut") StatutMatch statut,
             @Param("debut")  LocalDateTime debut,
             @Param("fin")    LocalDateTime fin
     );

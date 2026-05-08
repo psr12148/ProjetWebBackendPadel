@@ -2,6 +2,7 @@ package be.ephec.pdw.projetwebbackendpadel.service;
 
 import be.ephec.pdw.projetwebbackendpadel.dto.DashboardStats;
 import be.ephec.pdw.projetwebbackendpadel.entity.Site;
+import be.ephec.pdw.projetwebbackendpadel.enums.StatutMatch;
 import be.ephec.pdw.projetwebbackendpadel.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,9 +46,9 @@ public class DashboardService {
         long matchsAujourdhui = dashboardRepository.countMatchsBetween(debutJour, finJour);
         long matchsSemaine    = dashboardRepository.countMatchsBetween(debutSem,  finSem);
         long matchsEnAttente  = dashboardRepository.countMatchsByStatutBetween(
-                "EN_ATTENTE", debutSem, finSem);
+                StatutMatch.EN_ATTENTE, debutSem, finSem);
         long matchsConfirmes  = dashboardRepository.countMatchsByStatutBetween(
-                "CONFIRME", debutSem, finSem);
+                StatutMatch.CONFIRME, debutSem, finSem);
         long matchsPublics    = dashboardRepository.countMatchsPublicsDisponibles(now);
         long matchsPrivesInc  = dashboardRepository.countMatchsPrivesIncomplets(now);
 

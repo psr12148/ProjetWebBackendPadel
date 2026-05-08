@@ -6,11 +6,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
 
     <!--
-        Compte administrateur initial.
-        Mot de passe : "admin123456"
-        Hash BCrypt : new BCryptPasswordEncoder().encode("admin123456")
-        !! CHANGER EN PRODUCTION !!
-    -->
+         Compte administrateur initial.
+         Mot de passe : "admin123456"
+         Hash BCrypt vérifié pour "admin123456" (rounds=10).
+         !! CHANGER EN PRODUCTION !!
+     -->
     <changeSet id="8" author="padel-dev">
         <insert tableName="membres">
             <column name="matricule"         value="ADMIN"/>
@@ -19,7 +19,7 @@
             <column name="prenom"            value="Padel"/>
             <column name="email"             value="admin@padel.be"/>
             <column name="mot_de_passe_hash"
-                    value="$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"/>
+                    value="$2b$10$NHkvFFTUKpa4QveNxpL6JOJxOw/ccueIzI/pu3MkxQg8Bs.6kPXD."/>
             <column name="solde_impaye"      valueNumeric="0.00"/>
             <column name="created_at"        valueComputed="NOW()"/>
         </insert>
