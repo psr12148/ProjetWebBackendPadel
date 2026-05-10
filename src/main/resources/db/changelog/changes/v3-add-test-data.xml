@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!--
+        Données de test pour le développement frontend.
+        Mot de passe pour TOUS les membres : "test12345"
+        Hash BCrypt vérifié pour "test12345".
+
+        Crédentials de test :
+          - jean@padel.be   / test12345  (membre GLOBAL)
+          - marie@padel.be  / test12345  (membre SITE - rattaché site id=1)
+          - paul@padel.be   / test12345  (membre LIBRE)
+
+        À NE PAS UTILISER EN PRODUCTION.
+    -->
+
+    <!-- ============================================================
+         3.1 — Site de test
+         ============================================================ -->
+    <changeSet id="9" author="padel-dev">
+        <insert tableName="sites">
+            <column name="nom"               value="Padel Club EPHEC"/>
+            <column name="adresse"           value="Avenue Konrad Adenauer 3, 1200 Woluwe-Saint-Lambert"/>
+            <column name="nb_terrains"       valueNumeric="3"/>
+            <column name="heure_ouverture"   value="08:00:00"/>
+            <column name="heure_fermeture"   value="22:00:00"/>
+            <column name="annee_applicable"  valueNumeric="2026"/>
+            <column name="created_at"        valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+
+    <!-- ============================================================
+         3.2 — Terrains du site
+         ============================================================ -->
+    <changeSet id="10" author="padel-dev">
+        <insert tableName="terrains">
+            <column name="site_id"     valueComputed="(SELECT id FROM sites WHERE nom = 'Padel Club EPHEC')"/>
+            <column name="numero"      valueNumeric="1"/>
+            <column name="nom"         value="Terrain Central"/>
+            <column name="created_at"  valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="terrains">
+            <column name="site_id"     valueComputed="(SELECT id FROM sites WHERE nom = 'Padel Club EPHEC')"/>
+            <column name="numero"      valueNumeric="2"/>
+            <column name="nom"         value="Terrain Couvert"/>
+            <column name="created_at"  valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="terrains">
+            <column name="site_id"     valueComputed="(SELECT id FROM sites WHERE nom = 'Padel Club EPHEC')"/>
+            <column name="numero"      valueNumeric="3"/>
+            <column name="nom"         value="Terrain Extérieur"/>
+            <column name="created_at"  valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+
+    <!-- ============================================================
+         3.3 — 3 membres de test (un par type)
+         Hash BCrypt de "test12345" : $2b$10$WtAdI91Tcjim5Dxr7/npO.VMwGzwW8FMjhUd9np4s1Cr9itN/dz5i
+         ============================================================ -->
+    <changeSet id="11" author="padel-dev">
+
+        <!-- Membre GLOBAL -->
+        <insert tableName="membres">
+            <column name="matricule"          value="G0001"/>
+            <column name="type_membre"        value="GLOBAL"/>
+            <column name="nom"                value="Dupont"/>
+            <column name="prenom"             value="Jean"/>
+            <column name="email"              value="jean@padel.be"/>
+            <column name="mot_de_passe_hash"  value="$2b$10$WtAdI91Tcjim5Dxr7/npO.VMwGzwW8FMjhUd9np4s1Cr9itN/dz5i"/>
+            <column name="solde_impaye"       valueNumeric="0.00"/>
+            <column name="created_at"         valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Membre SITE (rattaché à Padel Club EPHEC) -->
+        <insert tableName="membres">
+            <column name="matricule"          value="S00001"/>
+            <column name="type_membre"        value="SITE"/>
+            <column name="site_id"            valueComputed="(SELECT id FROM sites WHERE nom = 'Padel Club EPHEC')"/>
+            <column name="nom"                value="Martin"/>
+            <column name="prenom"             value="Marie"/>
+            <column name="email"              value="marie@padel.be"/>
+            <column name="mot_de_passe_hash"  value="$2b$10$WtAdI91Tcjim5Dxr7/npO.VMwGzwW8FMjhUd9np4s1Cr9itN/dz5i"/>
+            <column name="solde_impaye"       valueNumeric="0.00"/>
+            <column name="created_at"         valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Membre LIBRE -->
+        <insert tableName="membres">
+            <column name="matricule"          value="L0001"/>
+            <column name="type_membre"        value="LIBRE"/>
+            <column name="nom"                value="Lefèvre"/>
+            <column name="prenom"             value="Paul"/>
+            <column name="email"              value="paul@padel.be"/>
+            <column name="mot_de_passe_hash"  value="$2b$10$WtAdI91Tcjim5Dxr7/npO.VMwGzwW8FMjhUd9np4s1Cr9itN/dz5i"/>
+            <column name="solde_impaye"       valueNumeric="0.00"/>
+            <column name="created_at"         valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+
+    <!-- ============================================================
+         3.4 — Quelques matchs de test
+         Différents types et statuts pour tester l'affichage frontend.
+         Dates basées sur DATEADD pour rester relatives à aujourd'hui.
+         ============================================================ -->
+    <changeSet id="12" author="padel-dev">
+
+        <!-- Match 1 : PUBLIC EN_ATTENTE — dans 3 jours à 18h, terrain 1 -->
+        <insert tableName="matchs">
+            <column name="terrain_id"       valueComputed="(SELECT id FROM terrains WHERE numero = 1 AND site_id = (SELECT id FROM sites WHERE nom = 'Padel Club EPHEC'))"/>
+            <column name="organisateur_id"  valueComputed="(SELECT id FROM membres WHERE email = 'jean@padel.be')"/>
+            <column name="date_heure"       valueComputed="DATEADD('DAY', 3, FORMATDATETIME(CURRENT_DATE, 'yyyy-MM-dd 18:00:00'))"/>
+            <column name="type_match"       value="PUBLIC"/>
+            <column name="statut"           value="EN_ATTENTE"/>
+            <column name="montant_total"    valueNumeric="60.00"/>
+            <column name="created_at"       valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Match 2 : PRIVE EN_ATTENTE — dans 5 jours à 19h30, terrain 2 -->
+        <insert tableName="matchs">
+            <column name="terrain_id"       valueComputed="(SELECT id FROM terrains WHERE numero = 2 AND site_id = (SELECT id FROM sites WHERE nom = 'Padel Club EPHEC'))"/>
+            <column name="organisateur_id"  valueComputed="(SELECT id FROM membres WHERE email = 'marie@padel.be')"/>
+            <column name="date_heure"       valueComputed="DATEADD('DAY', 5, FORMATDATETIME(CURRENT_DATE, 'yyyy-MM-dd 19:30:00'))"/>
+            <column name="type_match"       value="PRIVE"/>
+            <column name="statut"           value="EN_ATTENTE"/>
+            <column name="montant_total"    valueNumeric="60.00"/>
+            <column name="created_at"       valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Match 3 : PUBLIC CONFIRME — dans 2 jours à 10h, terrain 3 -->
+        <insert tableName="matchs">
+            <column name="terrain_id"       valueComputed="(SELECT id FROM terrains WHERE numero = 3 AND site_id = (SELECT id FROM sites WHERE nom = 'Padel Club EPHEC'))"/>
+            <column name="organisateur_id"  valueComputed="(SELECT id FROM membres WHERE email = 'paul@padel.be')"/>
+            <column name="date_heure"       valueComputed="DATEADD('DAY', 2, FORMATDATETIME(CURRENT_DATE, 'yyyy-MM-dd 10:00:00'))"/>
+            <column name="type_match"       value="PUBLIC"/>
+            <column name="statut"           value="CONFIRME"/>
+            <column name="montant_total"    valueNumeric="60.00"/>
+            <column name="created_at"       valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+
+    <!-- ============================================================
+         3.5 — Participations associées aux matchs
+         Match 1 (PUBLIC EN_ATTENTE) : Jean inscrit (organisateur), non payé
+         Match 2 (PRIVE EN_ATTENTE)  : Marie inscrite (organisatrice), non payée
+         Match 3 (PUBLIC CONFIRME)   : 4 joueurs confirmés et payés
+         ============================================================ -->
+    <changeSet id="13" author="padel-dev">
+
+        <!-- Match 1 : organisateur Jean inscrit, non payé -->
+        <insert tableName="participations">
+            <column name="match_id"      valueComputed="(SELECT m.id FROM matchs m WHERE m.organisateur_id = (SELECT id FROM membres WHERE email = 'jean@padel.be'))"/>
+            <column name="membre_id"     valueComputed="(SELECT id FROM membres WHERE email = 'jean@padel.be')"/>
+            <column name="statut"        value="EN_ATTENTE"/>
+            <column name="montant_du"    valueNumeric="15.00"/>
+            <column name="montant_paye"  valueNumeric="0.00"/>
+            <column name="created_at"    valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Match 2 : organisatrice Marie inscrite, non payée -->
+        <insert tableName="participations">
+            <column name="match_id"      valueComputed="(SELECT m.id FROM matchs m WHERE m.organisateur_id = (SELECT id FROM membres WHERE email = 'marie@padel.be'))"/>
+            <column name="membre_id"     valueComputed="(SELECT id FROM membres WHERE email = 'marie@padel.be')"/>
+            <column name="statut"        value="EN_ATTENTE"/>
+            <column name="montant_du"    valueNumeric="15.00"/>
+            <column name="montant_paye"  valueNumeric="0.00"/>
+            <column name="created_at"    valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Match 3 : 4 joueurs confirmés et payés -->
+        <!-- Joueur 1 : Paul (organisateur) -->
+        <insert tableName="participations">
+            <column name="match_id"      valueComputed="(SELECT m.id FROM matchs m WHERE m.organisateur_id = (SELECT id FROM membres WHERE email = 'paul@padel.be'))"/>
+            <column name="membre_id"     valueComputed="(SELECT id FROM membres WHERE email = 'paul@padel.be')"/>
+            <column name="statut"        value="CONFIRME"/>
+            <column name="montant_du"    valueNumeric="15.00"/>
+            <column name="montant_paye"  valueNumeric="15.00"/>
+            <column name="date_paiement" valueComputed="NOW()"/>
+            <column name="created_at"    valueComputed="NOW()"/>
+        </insert>
+        <!-- Joueur 2 : Jean -->
+        <insert tableName="participations">
+            <column name="match_id"      valueComputed="(SELECT m.id FROM matchs m WHERE m.organisateur_id = (SELECT id FROM membres WHERE email = 'paul@padel.be'))"/>
+            <column name="membre_id"     valueComputed="(SELECT id FROM membres WHERE email = 'jean@padel.be')"/>
+            <column name="statut"        value="CONFIRME"/>
+            <column name="montant_du"    valueNumeric="15.00"/>
+            <column name="montant_paye"  valueNumeric="15.00"/>
+            <column name="date_paiement" valueComputed="NOW()"/>
+            <column name="created_at"    valueComputed="NOW()"/>
+        </insert>
+        <!-- Joueur 3 : Marie -->
+        <insert tableName="participations">
+            <column name="match_id"      valueComputed="(SELECT m.id FROM matchs m WHERE m.organisateur_id = (SELECT id FROM membres WHERE email = 'paul@padel.be'))"/>
+            <column name="membre_id"     valueComputed="(SELECT id FROM membres WHERE email = 'marie@padel.be')"/>
+            <column name="statut"        value="CONFIRME"/>
+            <column name="montant_du"    valueNumeric="15.00"/>
+            <column name="montant_paye"  valueNumeric="15.00"/>
+            <column name="date_paiement" valueComputed="NOW()"/>
+            <column name="created_at"    valueComputed="NOW()"/>
+        </insert>
+        <!-- Joueur 4 : Admin -->
+        <insert tableName="participations">
+            <column name="match_id"      valueComputed="(SELECT m.id FROM matchs m WHERE m.organisateur_id = (SELECT id FROM membres WHERE email = 'paul@padel.be'))"/>
+            <column name="membre_id"     valueComputed="(SELECT id FROM membres WHERE matricule = 'ADMIN')"/>
+            <column name="statut"        value="CONFIRME"/>
+            <column name="montant_du"    valueNumeric="15.00"/>
+            <column name="montant_paye"  valueNumeric="15.00"/>
+            <column name="date_paiement" valueComputed="NOW()"/>
+            <column name="created_at"    valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

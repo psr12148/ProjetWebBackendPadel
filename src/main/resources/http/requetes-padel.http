@@ -1,0 +1,18 @@
+### 1. Connexion de l'Administrateur
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@padel.be",
+  "motDePasse": "admin123456"
+}
+
+
+### 1. Connexion d'un memnbre
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email":"paul@padel.be",
+  "motDePasse":"test12345"
+}

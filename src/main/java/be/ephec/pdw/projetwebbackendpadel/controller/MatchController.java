@@ -17,7 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/v1/matches")
+@RequestMapping("/v1/matchs")
 @RequiredArgsConstructor
 public class MatchController {
 

@@ -79,8 +79,15 @@ public class AuthController {
      * Retourne les infos du membre authentifié via son token.
      */
     @GetMapping("/me")
-    public ResponseEntity<AuthResponse> me(
+    public ResponseEntity<?> me(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        // Filet de sécurité : si userDetails est null, le token est absent
+        // ou invalide → on retourne 401 plutôt que de planter.
+        if (userDetails == null) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("message", "Non authentifié"));
+        }
 
         Membre membre = membreService.getMembreOrThrow(userDetails.getMembreId());
 

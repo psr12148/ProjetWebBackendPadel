@@ -81,13 +81,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Ne filtre pas les endpoints d'authentification
-     * pour éviter de valider un token sur /auth/login.
+     * Ne filtre pas les endpoints d'authentification publics (login, logout)
+     * qui n'ont PAS besoin de token JWT.
+     *
+     * IMPORTANT : /v1/auth/me a besoin du filtre car il utilise
+     * @AuthenticationPrincipal qui dépend du SecurityContext rempli par
+     * ce filtre. Si on l'exclut, userDetails est null → NullPointerException.
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/v1/auth/");
+        // CORRECTION : exclusion ciblée des routes publiques uniquement
+        return path.equals("/v1/auth/login")
+                || path.equals("/v1/auth/logout");
     }
 
 }
